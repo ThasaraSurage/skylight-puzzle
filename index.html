@@ -610,6 +610,16 @@
       margin-top: 16px;
     }
 
+    .master-message {
+      font-family: 'Cinzel', serif;
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: var(--gold);
+      margin-top: 24px;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 20px rgba(240,184,75,0.4);
+    }
+
     @media (max-width: 480px) {
       .success-emoji { 
         font-size: 3rem; 
@@ -625,6 +635,10 @@
       .handle-confirm {
         font-size: 0.85rem;
         margin-top: 12px;
+      }
+      .master-message {
+        font-size: 1rem;
+        margin-top: 18px;
       }
     }
 
@@ -739,7 +753,7 @@
     <div class="score-display" id="scoreDisplay">—</div>
     <div class="score-label">answers correct</div>
     <div class="modal-sub" id="successMsg">Your light joins a thousand others in the sky.</div>
-    <div class="handle-confirm" style="margin-top: 24px; font-size: 1.05rem; color: var(--gold);">Show your score to the game masters ✨</div>
+    <div class="master-message">Show your score to the master ✨</div>
     <div style="margin-top: 24px;">
       <button class="btn btn-primary" id="closeSuccessBtn">Close ✦</button>
     </div>
