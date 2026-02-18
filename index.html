@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Skylight — Crossword</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IM+Fell+English:ital@0;1&family=Cinzel:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0612;
+      --surface: #120d1e;
+      --gold: #f0b84b;
+      --gold-dim: #9a7230;
+      --rose: #e8556a;
+      --ivory: #f5ead8;
+      --ivory-dim: #b5a98a;
+      --glow: rgba(240, 184, 75, 0.18);
+      --cell-size: 48px;
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --cell-size: 32px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      :root {
+        --cell-size: 28px;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ivory);
+      font-family: 'IM Fell English', serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Prevent zoom on input focus on iOS */
+    @media (max-width: 768px) {
+      input[type="text"] {
+        font-size: 16px !important;
+      }
+    }
+
+    /* ── Sky background ── */
+    .sky {
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, #1a0d2e 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 20% 30%, #2a0a1a 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 20%, #0d1a2a 0%, transparent 60%),
+        var(--bg);
+    }
+
+    /* Stars */
+    .stars { position: fixed; inset: 0; z-index: 0; }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: white;
+      animation: twinkle var(--d) ease-in-out infinite alternate;
+    }
+    @keyframes twinkle { from { opacity: 0.1; } to { opacity: var(--op); } }
+
+    /* Lanterns */
+    .lanterns { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .lantern {
+      position: absolute;
+      bottom: -120px;
+      animation: floatUp var(--dur) linear var(--delay) infinite;
+      opacity: 0;
+    }
+    .lantern-body {
+      width: var(--w);
+      height: calc(var(--w) * 1.4);
+      border-radius: 50% / 40%;
+      background: radial-gradient(ellipse at 35% 35%, var(--lc-bright), var(--lc));
+      box-shadow: 0 0 20px var(--lc), 0 0 60px var(--lc), inset 0 0 15px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .lantern-body::before {
+      content: '';
+      position: absolute;
+      top: -6px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 10px;
+      background: var(--lc-bright);
+      border-radius: 2px;
+    }
+    .lantern-body::after {
+      content: '';
+      position: absolute;
+      bottom: -8px; left: 50%; transform: translateX(-50%);
+      width: 6px; height: 12px;
+      background: var(--lc);
+      border-radius: 0 0 50% 50%;
+      opacity: 0.6;
+    }
+    @keyframes floatUp {
+      0% { bottom: -120px; opacity: 0; transform: translateX(0) rotate(-3deg); }
+      10% { opacity: 0.85; }
+      50% { transform: translateX(var(--sway)) rotate(3deg); }
+      90% { opacity: 0.7; }
+      100% { bottom: 110%; opacity: 0; transform: translateX(0) rotate(-3deg); }
+    }
+
+    /* ── Layout ── */
+    .wrapper {
+      position: relative; z-index: 10;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    @media (max-width: 768px) {
+      .wrapper {
+        padding: 32px 16px 60px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .wrapper {
+        padding: 24px 12px 50px;
+      }
+    }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 56px; }
+
+    .title-word {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(2.2rem, 8vw, 5rem);
+      font-weight: 400;
+      letter-spacing: 0.25em;
+      color: var(--gold);
+      text-shadow: 0 0 40px rgba(240,184,75,0.5), 0 0 80px rgba(240,184,75,0.2);
+      display: block;
+      animation: fadeDown 1s ease both;
+    }
+    .subtitle {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      color: var(--ivory-dim);
+      letter-spacing: 0.15em;
+      margin-top: 10px;
+      animation: fadeDown 1s 0.3s ease both;
+    }
+
+    @media (max-width: 480px) {
+      .title-word {
+        letter-spacing: 0.15em;
+      }
+      .subtitle {
+        letter-spacing: 0.1em;
+      }
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Main grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .main-grid { 
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+    }
+    @media (max-width: 480px) {
+      .main-grid { 
+        gap: 24px;
+      }
+    }
+
+    /* ── Crossword ── */
+    .puzzle-section { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .puzzle-section {
+        overflow-x: auto;
+        overflow-y: visible;
+        width: 100%;
+        align-items: flex-start;
+        padding-bottom: 10px;
+      }
+    }
+
+    .crossword-grid {
+      display: grid;
+      grid-template-columns: repeat(9, var(--cell-size));
+      grid-template-rows:    repeat(8, var(--cell-size));
+      gap: 2px;
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .cell-empty {
+      width: var(--cell-size); height: var(--cell-size);
+      background: transparent;
+    }
+
+    .cell {
+      width: var(--cell-size); height: var(--cell-size);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(240,184,75,0.25);
+      border-radius: 3px;
+      position: relative;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .cell:focus-within {
+      border-color: var(--gold);
+      background: rgba(240,184,75,0.1);
+      box-shadow: 0 0 12px rgba(240,184,75,0.3);
+      z-index: 2;
+    }
+    .cell.correct { border-color: #5ddb8f; background: rgba(93,219,143,0.1); }
+    .cell.incorrect { border-color: var(--rose); background: rgba(232,85,106,0.1); }
+    .cell.highlighted { background: rgba(240,184,75,0.07); }
+
+    .cell-num {
+      position: absolute;
+      top: 3px; left: 4px;
+      font-size: 8px;
+      font-family: 'Cormorant Garamond', serif;
+      color: var(--gold);
+      line-height: 1;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    @media (max-width: 480px) {
+      .cell-num {
+        font-size: 7px;
+        top: 2px;
+        left: 3px;
+      }
+    }
+
+    .cell input {
+      width: 100%; height: 100%;
+      background: transparent;
+      border: none; outline: none;
+      text-align: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--ivory);
+      text-transform: uppercase;
+      cursor: pointer;
+      caret-color: var(--gold);
+      padding-top: 6px;
+    }
+
+    @media (max-width: 768px) {
+      .cell input {
+        font-size: 1.2rem;
+        padding-top: 4px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .cell input {
+        font-size: 1rem;
+        padding-top: 3px;
+      }
+    }
+
+    /* ── Clues ── */
+    .clues-section { animation: fadeUp 0.8s 0.6s ease both; }
+
+    .clue-group { margin-bottom: 28px; }
+
+    @media (max-width: 480px) {
+      .clue-group { margin-bottom: 20px; }
+    }
+
+    .clue-heading {
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(240,184,75,0.2);
+    }
+
+    @media (max-width: 480px) {
+      .clue-heading {
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+      }
+    }
+
+    .clue-list { list-style: none; }
+    .clue-item {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 0.88rem;
+      color: var(--ivory-dim);
+      line-height: 1.55;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: color 0.2s;
+    }
+    .clue-item:hover { color: var(--ivory); }
+    .clue-item.active { color: var(--gold); }
+
+    @media (max-width: 480px) {
+      .clue-item {
+        font-size: 0.82rem;
+        gap: 8px;
+        padding: 6px 0;
+        line-height: 1.5;
+      }
+    }
+
+    .clue-num {
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      color: var(--gold-dim);
+      min-width: 16px;
+      margin-top: 2px;
+    }
+    .clue-item.active .clue-num { color: var(--gold); }
+
+    @media (max-width: 480px) {
+      .clue-num {
+        font-size: 0.7rem;
+        min-width: 14px;
+        margin-top: 1px;
+      }
+    }
+
+    /* ── Actions ── */
+    .actions {
+      display: flex; justify-content: center; gap: 16px;
+      margin-top: 32px;
+      animation: fadeUp 0.8s 0.8s ease both;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 480px) {
+      .actions {
+        gap: 12px;
+        margin-top: 24px;
+      }
+    }
+
+    .btn {
+      font-family: 'Cinzel', serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 12px 28px;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: all 0.25s;
+      border: none;
+    }
+
+    @media (max-width: 480px) {
+      .btn {
+        font-size: 0.72rem;
+        letter-spacing: 0.15em;
+        padding: 10px 20px;
+      }
+    }
+    .btn-primary {
+      background: var(--gold);
+      color: var(--bg);
+      box-shadow: 0 0 20px rgba(240,184,75,0.3);
+    }
+    .btn-primary:hover {
+      background: #f5c96e;
+      box-shadow: 0 0 32px rgba(240,184,75,0.5);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--ivory-dim);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .btn-secondary:hover {
+      border-color: rgba(240,184,75,0.4);
+      color: var(--gold);
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(5, 2, 12, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: linear-gradient(145deg, #180e2a, #0f0a1e);
+      border: 1px solid rgba(240,184,75,0.25);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 420px; width: 90%;
+      text-align: center;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(240,184,75,0.08);
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.35s, opacity 0.35s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+    @media (max-width: 480px) {
+      .modal {
+        padding: 36px 28px;
+        width: 92%;
+        border-radius: 16px;
+      }
+    }
+
+    .modal-lantern {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      animation: sway 3s ease-in-out infinite alternate;
+    }
+
+    @media (max-width: 480px) {
+      .modal-lantern {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+      }
+    }
+
+    @keyframes sway { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+
+    .modal-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.6rem;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .modal-sub {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1rem;
+      color: var(--ivory-dim);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 480px) {
+      .modal-title {
+        font-size: 1.3rem;
+      }
+      .modal-sub {
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+      }
+    }
+
+    .input-wrap {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .input-wrap {
+        margin-bottom: 16px;
+      }
+    }
+
+    .at-symbol {
+      position: absolute;
+      left: 16px; top: 50%; transform: translateY(-50%);
+      color: var(--gold);
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    @media (max-width: 480px) {
+      .at-symbol {
+        left: 14px;
+        font-size: 0.9rem;
+      }
+    }
+
+    .insta-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(240,184,75,0.3);
+      border-radius: 40px;
+      padding: 14px 20px 14px 38px;
+      color: var(--ivory);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .insta-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(240,184,75,0.2);
+    }
+    .insta-input::placeholder { color: var(--ivory-dim); opacity: 0.5; }
+
+    @media (max-width: 480px) {
+      .insta-input {
+        padding: 12px 16px 12px 34px;
+        font-size: 1rem;
+        border-radius: 30px;
+      }
+    }
+
+    .modal-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    @media (max-width: 480px) {
+      .modal-actions { gap: 10px; }
+    }
+
+    /* ── Success modal ── */
+    .success-emoji { font-size: 4rem; margin-bottom: 12px; }
+    .score-display {
+      font-family: 'Cinzel', serif;
+      font-size: 3rem;
+      color: var(--gold);
+      margin: 8px 0;
+      text-shadow: 0 0 30px rgba(240,184,75,0.5);
+    }
+    .score-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      color: var(--ivory-dim);
+      margin-bottom: 24px;
+    }
+    .handle-confirm {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      color: var(--gold-dim);
+      font-size: 0.9rem;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .success-emoji { 
+        font-size: 3rem; 
+        margin-bottom: 8px; 
+      }
+      .score-display {
+        font-size: 2.5rem;
+      }
+      .score-label {
+        font-size: 0.9rem;
+        margin-bottom: 18px;
+      }
+      .handle-confirm {
+        font-size: 0.85rem;
+        margin-top: 12px;
+      }
+    }
+
+    /* Confetti */
+    .confetti-piece {
+      position: fixed;
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      z-index: 200;
+      animation: confettiFall var(--cd) ease-in var(--cdelay) both;
+    }
+    @keyframes confettiFall {
+      0% { top: -10px; transform: rotate(0deg) translateX(0); opacity: 1; }
+      100% { top: 110vh; transform: rotate(720deg) translateX(var(--cx)); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="stars" id="stars"></div>
+<div class="lanterns" id="lanterns"></div>
+
+<div class="wrapper">
+  <header>
+    <span class="title-word">skylight</span>
+    <p class="subtitle">a crossword for the night of lanterns</p>
+  </header>
+
+  <div class="main-grid">
+    <!-- Puzzle -->
+    <div class="puzzle-section">
+      <div class="crossword-grid" id="grid"></div>
+    </div>
+
+    <!-- Clues -->
+    <div class="clues-section">
+      <div class="clue-group">
+        <div class="clue-heading">Across</div>
+        <ul class="clue-list" id="across-clues">
+          <li class="clue-item" data-dir="across" data-num="1">
+            <span class="clue-num">1</span>
+            <span>the invisible spark that makes tonight more than a festival</span>
+          </li>
+          <li class="clue-item" data-dir="across" data-num="2">
+            <span class="clue-num">2</span>
+            <span>the silent word you whisper before letting your lantern go</span>
+          </li>
+          <li class="clue-item" data-dir="across" data-num="4">
+            <span class="clue-num">4</span>
+            <span>the magical name of tonight's celebration where dreams rise and hearts glow</span>
+          </li>
+          <li class="clue-item" data-dir="across" data-num="6">
+            <span class="clue-num">6</span>
+            <span>the color of roses, passion and racing hearts tonight</span>
+          </li>
+        </ul>
+      </div>
+      <div class="clue-group">
+        <div class="clue-heading">Down</div>
+        <ul class="clue-list" id="down-clues">
+          <li class="clue-item" data-dir="down" data-num="1">
+            <span class="clue-num">1</span>
+            <span>i rise gently into the night, carrying hope in my glow</span>
+          </li>
+          <li class="clue-item" data-dir="down" data-num="3">
+            <span class="clue-num">3</span>
+            <span>the open canvas where lanterns float and wishes travel</span>
+          </li>
+          <li class="clue-item" data-dir="down" data-num="4">
+            <span class="clue-num">4</span>
+            <span>it begins small, but can ignite something unforgettable between two hearts</span>
+          </li>
+          <li class="clue-item" data-dir="down" data-num="5">
+            <span class="clue-num">5</span>
+            <span>without me even the brightest lantern cannot shine</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" id="clearBtn">Clear</button>
+        <button class="btn btn-primary" id="submitBtn">Release Lantern ✦</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Instagram Modal -->
+<div class="modal-overlay" id="instaModal">
+  <div class="modal">
+    <div class="modal-lantern">🏮</div>
+    <div class="modal-title">Wonderful!</div>
+    <div class="modal-sub">Your answers have been set free into the night sky.<br>Share your lantern moment with us!</div>
+    <div class="input-wrap">
+      <span class="at-symbol">@</span>
+      <input class="insta-input" id="instaInput" type="text" placeholder="your.username" autocomplete="off" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="skipBtn">Maybe later</button>
+      <button class="btn btn-primary" id="confirmBtn">Send it up ✦</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <div class="success-emoji">🌟</div>
+    <div class="modal-title">Lantern Released!</div>
+    <div class="score-display" id="scoreDisplay">—</div>
+    <div class="score-label">answers correct</div>
+    <div class="modal-sub" id="successMsg">Your light joins a thousand others in the sky.</div>
+    <div class="handle-confirm" id="handleConfirm"></div>
+    <div style="margin-top: 24px;">
+      <button class="btn btn-primary" id="closeSuccessBtn">Close ✦</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── Puzzle definition ─────────────────────────────────────────────────── */
+// Grid is 9 cols × 8 rows (0-indexed)
+// Answers:
+//   Across 2: WISH  (row=1, col=1, len=4)
+//   Across 4: SKYLIGHT (row=3, col=1, len=8)
+//   Across 6: RED   (row=5, col=6, len=3)
+//   Down   1: LOVE  (row=0, col=5, len=4)
+//   Down   3: LIGHT (row=3, col=5, len=5) — shares 'L' with SKYLIGHT col5
+//   Down   4: SPARK (row=3, col=2, len=5) — shares 'K' with SKYLIGHT col2? 
+//   Down   5: DARK  (row=1, col=2, len=4)
+
+// Cells that are active: map of "row,col" -> {answer letter, number?, wordIds}
+// Let me carefully map from the image:
+//
+// Row 0:              [5]L  O  V  E
+// Row 1: [2]W  I  S  H        N
+// Row 2:    K        I        T
+// Row 3: [4]S  K  Y [5]L  I  G  H  T
+// Row 4:    P        I        E
+// Row 5:    A        G  [6]R  E  D
+// Row 6:    R        H        N
+// Row 7:    K        T
+//
+// Let me re-read: grid cols 0-8, rows 0-7
+//
+// Down 1 = LOVE: starts row0,col5 → L(0,5) O(1,5) V(2,5) E(3,5)
+// Across 2 = WISH: starts row1,col1 → W(1,1) I(1,2) S(1,3) H(1,4)
+// Down 5 = DARK: starts row1,col2 → wait, image shows K going down from col2
+//   Actually col1 has W,K,S,P,A,R,K down — that's 7 letters. 
+//   Looking again: col1 down from row1: W,K,S(kylight row3... 
+//   Actually across 4 SKYLIGHT starts at col0? Let's re-examine.
+//
+// From image col positions for SKYLIGHT row:
+//   s k y [5]l i g h t  — 8 letters
+//   The [5] marker is before 'l', so word 5 across? No, [5] is a clue number for Down 5
+//   Actually looking at image: "4 s k y 5 l i g h t" where 4 and 5 are cell numbers
+//   So SKYLIGHT: S(r3,c0) K(r3,c1) Y(r3,c2) L(r3,c3) I(r3,c4) G(r3,c5) H(r3,c6) T(r3,c7)
+//   Down 1 LOVE: L(r0,c6) O(r1,c6) V(r2,c6) E(r3,c6) — shares G? no shares with SKYLIGHT at c6=G vs E? 
+//   Hmm let me re-examine more carefully.
+//
+// Actually from the image layout I'll use exact pixel positions:
+// The grid shows:
+//   Row 0 (top):                     [1]l o v e  (cols 5,6,7,8)
+//   Row 1:          [2]w i s h            a      (cols 1,2,3,4 for WISH; col 7 for 'a' from LANTERN?)
+//   Row 2:             k              n          (col 2 has 'k'; col 7 has 'n')  
+//   Row 3:          [4]s k y [5]l i g h t        (cols 1-8 for SKYLIGHT; [5] at col4 means down5 starts here)
+//   Row 4:             p              i          (wait, re-examining)
+//   ...
+//   Actually the Down clues from image show letters going down after SKYLIGHT row.
+//
+// Let me use the clearest reading:
+// ACROSS 2: WISH at row1, starting col1
+// ACROSS 4: SKYLIGHT at row3, starting col1 (8 letters, cols 1-8)
+// ACROSS 6: RED at row5, starting col6
+// DOWN 1: LOVE starting row0 col6 (L,O,V,E going down — col6: row0=L,row1=O,row2=V,row3=E... but SKYLIGHT row3 col6=H, conflict)
+//   So DOWN 1 must be at different col. Image shows [1] above col5 area.
+//   LOVE: row0c5=L, row1c5=O, row2c5=V, row3c5=E — but SKYLIGHT row3c5=I? No...
+//   SKYLIGHT: S(c1)K(c2)Y(c3)L(c4)I(c5)G(c6)H(c7)T(c8)
+//   Down 1 LOVE shares with SKYLIGHT: need intersection. 
+//   If LOVE is at col6: L(r0,c6),O(r1,c6),V(r2,c6),E(r3,c6)... SKYLIGHT[c6]=G ≠ E. 
+//   
+// I'll use the image coordinates more carefully, mapping the visual grid:
+// The image shows the grid with specific cells. Let me place:
+// 
+// Down 1 = LOVE: col=6, row=0 → L,O,V,E (rows 0-3), and SKYLIGHT row3,col6=G? That doesn't match.
+// Unless LOVE only goes to row3 and LOVE's last letter 'E' is at row3 but SKYLIGHT col at that position is also 'E'?
+// 
+// Let me try: SKYLIGHT = S K Y L I G H T
+//   col:           1 2 3 4 5 6 7 8
+// DOWN 1 LOVE at col 6:  L(r0) O(r1) V(r2) E(r3) but SKYLIGHT[col6]=G ≠ E. Doesn't work.
+//
+// Maybe SKYLIGHT starts at col0:
+//   S(c0) K(c1) Y(c2) L(c3) I(c4) G(c5) H(c6) T(c7)
+// Down 1 LOVE at col5: L(r0) O(r1) V(r2) E(r3)... SKYLIGHT[c5]=G ≠ E. Still no.
+// 
+// Down 3 = LIGHT (image clue 3): shares with SKYLIGHT - LIGHT: L,I,G,H,T 
+//   If SKYLIGHT = S K Y L I G H T (cols 1-8), then LIGHT appears at cols 4-8 of row3.
+//   DOWN 3 would start at row3, col4 going down... but it says "open canvas" = SKY
+//   Actually clue 3 Down = "open canvas where lanterns float" = SKY? or NIGHT?
+//   Clue 4 Down = "begins small, ignite something" = SPARK
+//   Clue 5 Down = "without me brightest lantern cannot shine" = LIGHT? or DARK (without darkness light can't exist?) Actually = DARK makes sense
+//
+// Let me just go with what's clearly visible and logical:
+// DOWN 3 = SKY (3 letters, going down, sharing 'S','K','Y' with SKYLIGHT)
+//   Wait that would be vertical SKY at col1,col2,col3 which are rows? No, down means same col different rows.
+//
+// I'll settle on this definitive layout based on the image:
+// 
+//        col: 0  1  2  3  4  5  6  7  8
+// row 0:               [1]           l  o  v  e
+// row 1:         [2]w  i  s  h          a     
+// row 2:              k              n     
+// row 3:         [4]s  k  y  [5]l  i  g  h  t    -- wait this is 8 letters s(1)k(2)y(3)l(4)i(5)g(6)h(7)t(8)
+// etc.
+// 
+// You know what, I'll just trust the answers and figure the exact grid layout:
+// 
+// FINAL ANSWER LAYOUT - verified against all clue intersections:
+// Across 2: WISH  → row 1, col 1..4
+// Across 4: SKYLIGHT → row 3, col 1..8  
+// Across 6: RED   → row 5, col 6..8
+// Down 1:  LOVE  → col 6, row 0..3  (LOVE[3]='E', SKYLIGHT[col6]='H'... still conflicts)
+//
+// Actually let me try with the [number] markers indicating which cell has the number:
+// [1] is at row0,col6 → LOVE goes down from there: L(r0c6),O(r1c6),V(r2c6),E(r3c6)
+// SKYLIGHT row3: S(c1)K(c2)Y(c3)L(c4)I(c5)G(c6)H(c7)T(c8)
+// LOVE[E] at r3c6 vs SKYLIGHT[G] at r3c6 → still conflicts.
+//
+// SO: SKYLIGHT must only go to col 7, meaning it starts at col0: S(c0)K(c1)Y(c2)L(c3)I(c4)G(c5)H(c6)T(c7)
+// Then LOVE at col5: r0c5=L, r1c5=O, r2c5=V, r3c5=I (SKYLIGHT c5=I, LOVE[4th]=E) → 'I'≠'E'. No.
+// 
+// OK let me try LOVE at col7:  r0c7=L, r1c7=O, r2c7=V, r3c7=H (SKYLIGHT c7=H, LOVE c7 row3=E) → H≠E. No.
+// 
+// The only way this works: LOVE intersects SKYLIGHT at a shared letter.
+// LOVE contains: L,O,V,E
+// SKYLIGHT contains: S,K,Y,L,I,G,H,T
+// Common letter: L
+// So LOVE's L intersects SKYLIGHT's L.
+// SKYLIGHT: S(c1)K(c2)Y(c3)L(c4)I(c5)G(c6)H(c7)T(c8) → L is at col4
+// LOVE going down col4: L at row? We need LOVE to end at row3 where SKYLIGHT's L is.
+// If LOVE ends at row3: E is at row3? But SKYLIGHT col4 is L not E.
+// OR LOVE starts at row3: L(r3c4)O(r4c4)V(r5c4)E(r6c4)? But [1] marker should be at the start.
+//
+// WAIT. Looking at the image again: [1] is at top right area. The 'l' of LOVE is at row0.
+// And in row3, the SKYLIGHT row, there's a [5] before 'l'. So col with [5] has 'l' from SKYLIGHT.
+// 
+// So: SKYLIGHT = ...[5]L I G H T  meaning L is at position where Down-5 starts.
+// Full SKYLIGHT: s k y [5]l i g h t
+// If SKYLIGHT starts at col0: S(c0)K(c1)Y(c2)[5]L(c3)I(c4)G(c5)H(c6)T(c7)
+// Down 5 starts at row3,col3 (letter L): ??  
+// Down 5 = "without me brightest lantern cannot shine" = LIGHT (L already there, so: L(r3c3)I(r4c3)G(r5c3)H(r6c3)T(r7c3))
+//
+// And Down 1 [1] LOVE starts at row0:
+// From image [1] is at col5 area. If col5: L(r0c5),O(r1c5),V(r2c5),E(r3c5)... SKYLIGHT[c5]=I. No.
+// If SKYLIGHT = S(c0)K(c1)Y(c2)L(c3)I(c4)G(c5)H(c6)T(c7):
+// At col6: SKYLIGHT gives H. LOVE at col6: L,O,V,E with E at row3→ SKYLIGHT[c6]=H≠E. 
+// At col4: SKYLIGHT gives I. Can't be.
+// 
+// Hmm. Let me just try: maybe LOVE intersects on 'O'?
+// LOVE: L O V E, letter O at position 1 (0-indexed)
+// If SKYLIGHT has... no, SKYLIGHT doesn't have O.
+// 
+// Maybe DOWN 1 doesn't intersect SKYLIGHT at all and is in a separate column!
+// Looking at image: [1] and LOVE are to the right of the grid, in cols that SKYLIGHT doesn't reach.
+// If SKYLIGHT = S(c0..7) and LOVE is at col 8: L(r0c8),O(r1c8)... but SKYLIGHT ends at c7=T.
+// Then LOVE at col8 is independent. ✓
+// 
+// So col8 has L,O,V,E going down rows 0-3. SKYLIGHT doesn't reach col8 (ends at c7).
+// But wait that means [1] marker is at row0,col8. Let me check image... 
+// The image shows col layout and [1] appears to be separate from SKYLIGHT. YES this works!
+//
+// FINAL DEFINITIVE LAYOUT:
+// Across 2: WISH  → row1, col0..3  (W=c0,I=c1,S=c2,H=c3)
+// Across 4: SKYLIGHT → row3, col0..7  (S=c0,K=c1,Y=c2,L=c3,I=c4,G=c5,H=c6,T=c7)
+// Across 6: RED   → row5, col5..7  (R=c5,E=c6,D=c7)
+// Down 1:  LOVE  → col5, row0..3  (L=r0,O=r1,V=r2,E=r3) -- but r3c5=I from SKYLIGHT. Conflict again!
+//
+// I give up trying to derive it. Let me use what makes visual sense from the image:
+// The image clearly shows two separate clusters. I'll use the EXACT visual layout.
+
+const ROWS = 9, COLS = 10;
+
+// Each cell: { answer, clueNums: [] }
+// grid[row][col] = null (black) or {answer: 'X', num: N or null, acrossWord: id, downWord: id}
+
+const words = {
+  across2: { answer: 'WISH',     row: 1, col: 1, dir: 'across' },
+  across4: { answer: 'SKYLIGHT', row: 3, col: 1, dir: 'across' },
+  across6: { answer: 'RED',      row: 5, col: 6, dir: 'across' },
+  down1:   { answer: 'LOVE',     row: 0, col: 6, dir: 'down'   },
+  down3:   { answer: 'SKY',      row: 1, col: 3, dir: 'down'   },
+  down4:   { answer: 'SPARK',    row: 3, col: 1, dir: 'down'   },
+  down5:   { answer: 'LIGHT',    row: 3, col: 4, dir: 'down'   },
+};
+
+// Verify intersections:
+// across4 SKYLIGHT r3c1..8: S(c1)K(c2)Y(c3)L(c4)I(c5)G(c6)H(c7)T(c8)
+// down1 LOVE r0..3 c6: L(r0)O(r1)V(r2)E(r3)... r3c6=E but SKYLIGHT r3c6=G. Conflict.
+// Let me try down1 LOVE at col7: L(r0c7)O(r1c7)V(r2c7)E(r3c7)... SKYLIGHT r3c7=H. Conflict.
+// down1 LOVE at col5: SKYLIGHT r3c5=I, LOVE[3]=E. Conflict.
+// The only col where LOVE's 4th letter (E) matches SKYLIGHT is impossible since SKYLIGHT=SKYLIGHT has no E.
+// 
+// CONCLUSION: LOVE must not share row 3 with SKYLIGHT. 
+// So LOVE starts ABOVE row 3 by at least: if LOVE is 4 letters starting row r, it ends at row r+3.
+// For it not to reach row3: r+3 < 3 → r < 0. Impossible.
+// OR LOVE starts at row1 or later and only goes 3 rows:
+//   r=1: ends r=4, still hits r=3.
+//   
+// The ONLY solution: LOVE is in a column that SKYLIGHT doesn't occupy.
+// SKYLIGHT occupies cols 1-8 (if 8 letters). Col 0 and col 9+ are free.
+// So LOVE at col 0: but [1] marker appears to the RIGHT of WISH in the image.
+// 
+// OR: SKYLIGHT is only in cols 1-8 but LOVE is at col 9.
+// From image, LOVE appears to the right of main grid. Let's place it at col 9.
+// Col 9: L(r0c9),O(r1c9),V(r2c9),E(r3c9). SKYLIGHT doesn't reach col9. ✓
+// And RED at r5, needs to extend to... RED starts at c6 or c7?
+// 
+// After LOVE col: if LOVE's 'E' goes down to r3c9 and across6 RED is at r5c7..9:
+//   R(r5c7)E(r5c8)D(r5c9)? And down1 ends at r3c9, RED starts at r5c9. They share col9!
+//   r5c9=D (last letter of RED) — no direct conflict since down1 ends at r3.
+// But the clue for 6 across is "color of roses" = RED (3 letters). If RED is at r5c7..9 that works fine.
+//
+// Let me also check down3=SKY? Clue says "open canvas" = SKY. SKY 3 letters.
+//   If at col4 row1..3: S(r1c4)K(r2c4)Y(r3c4). SKYLIGHT r3c4=L≠Y. Conflict.
+//   Col3 row1..3: S(r1c3)K(r2c3)Y(r3c3). SKYLIGHT r3c3=Y ✓ 
+//   And WISH r1c1..4: W(c1)I(c2)S(c3)H(c4). WISH[c3]=S=down3[r1c3]. ✓ 
+//   So down3 SKY shares 'S' with WISH at r1c3. ✓ 
+//
+// down4 SPARK: clue "begins small, ignite between two hearts"
+//   SPARK 5 letters. Starts at r3 (SKYLIGHT row). 
+//   From image the number [4] appears at start of both across4 and... wait, clue numbers:
+//   Across4 and Down4 share the same cell [4] - standard crossword convention.
+//   So Down4 starts at same cell as Across4: r3c1. Going down: S(r3c1)P(r4c1)A(r5c1)R(r6c1)K(r7c1). ✓
+//   SKYLIGHT r3c1=S=SPARK[0]. ✓ 
+//
+// down5 LIGHT: clue "without me brightest lantern cannot shine" 
+//   Wait - but clue 5 down says "without me even the brightest lantern cannot shine" → DARK? or LIGHT?
+//   If DARK: D,A,R,K - 4 letters. Starts at same cell as [5] in SKYLIGHT.
+//   From SKYLIGHT: S(c1)K(c2)Y(c3)L(c4)I(c5)G(c6)H(c7)T(c8), [5] is at c4=L.
+//   Down5 starts r3c4: going down with DARK: D(r3c4)A(r4c4)R(r5c4)K(r6c4).
+//   But SKYLIGHT r3c4=L≠D. Conflict.
+//   
+//   Hmm. Maybe [5] marks a different letter. Looking at image: "4 s k y 5 l i g h t"
+//   [5] is before 'l', meaning the cell AT 'l' has number 5.
+//   So [5] is at col4 (0-indexed from s=0): col 1+3=col4 if SKYLIGHT starts at col1.
+//   SKYLIGHT r3c1..8: S(c1)K(c2)Y(c3)L(c4)I(c5)G(c6)H(c7)T(c8)
+//   [5] at r3c4=L. Down5 starts here going down. 
+//   Clue 5 = "without me brightest lantern cannot shine" = LIGHT (because light makes lanterns shine! ✓)
+//   LIGHT: L(r3c4)I(r4c4)G(r5c4)H(r6c4)T(r7c4). SKYLIGHT r3c4=L ✓.
+//   And across6 RED at r5: 
+//     If RED r5c5..7: R(c5)E(c6)D(c7). down5 LIGHT r5c4=G. No conflict. ✓
+//     But image shows RED in different position. Let me check: down1 LOVE at col9:
+//     LOVE ends at r3c9. After r3, col9 is free. RED could be at r5c7..9.
+//
+// ABSOLUTE FINAL LAYOUT:
+// Grid is 8 rows × 10 cols (0-indexed r0..7, c0..9)
+//
+// across2: WISH   r1, c1..4
+// across4: SKYLIGHT r3, c1..8
+// across6: RED    r5, c7..9
+//
+// down1:  LOVE  c9, r0..3 → L(r0c9)O(r1c9)V(r2c9)E(r3c9)
+//   [But RED r5c9=D and LOVE ends r3c9 — no conflict ✓]
+//   Hmm but from the IMAGE, LOVE appears at the TOP RIGHT and RED appears in the MIDDLE RIGHT.
+//   LOVE is above RED — they're in the same column (c9)? That works visually!
+//   Actually image shows LOVE going: l(r0)o(r1)v(r2)e(r3) in top-right
+//   And RED going: r(r5)e(r6)d(r7)? or same row?
+//   across6 RED: it's ACROSS so all in same row.
+//   
+// down3: SKY   c3, r1..3 → S(r1c3)K(r2c3)Y(r3c3)
+//   WISH[c3]=S at r1c3. WISH: W(c1)I(c2)S(c3)H(c4). WISH r1c3=S=SKY[0] ✓
+//   SKYLIGHT r3c3=Y=SKY[2] ✓
+//
+// down4: SPARK c1, r3..7 → S(r3c1)P(r4c1)A(r5c1)R(r6c1)K(r7c1)
+//   SKYLIGHT r3c1=S=SPARK[0] ✓
+//
+// down5: LIGHT c4, r3..7 → L(r3c4)I(r4c4)G(r5c4)H(r6c4)T(r7c4)
+//   SKYLIGHT r3c4=L=LIGHT[0] ✓
+//
+// across6 RED: let's figure the column. Image shows RED in same row as LIGHT column.
+//   If RED is at r5c5..7: R(c5)E(c6)D(c7). down1 LOVE at c9 → no conflict. ✓
+//   down5 LIGHT r5c4=G. RED starts at c5 → no overlap. ✓
+//   But we need RED to intersect with a down word. From image, RED appears to intersect down1.
+//   down1 LOVE ends at r3, RED is at r5, they don't intersect directly.
+//
+// Actually let me just look at the image one more time:
+// RED appears to be at approximately the same row as where 'n' appears below LOVE.
+// LOVE: L(r0)O(r1)V(r2)E(r3) with letters 'a','n','t','e','n' appearing below continuing as "LANTERN"?
+// No — looking at image, below LOVE column (right side) there are letters a,n,t,e,n going down.
+// That must be another down word: LANTERN? No, it's a crossword, only the defined words exist.
+// 
+// Actually the letters a,n,t,e,n below 'e' of LOVE in the image — these are from across6.
+// across6 = RED: r,e,d — but that's only 3 letters and they appear horizontally.
+// The letters appearing vertically on right side below LOVE must be continuation of down1 beyond LOVE?
+// No — down1 clue is LOVE (4 letters).
+// 
+// WAIT: maybe it's not LOVE going down! Let me re-read clue 1:
+// "i rise gently into the night, carrying hope in my glow" = LANTERN! (7 letters)
+// LANTERN: L,A,N,T,E,R,N 
+// That explains all the extra letters seen below! 
+// 
+// So:
+// down1: LANTERN c6 (or wherever [1] is), r0..6 → L(r0)A(r1)N(r2)T(r3)E(r4)R(r5)N(r6)
+//   SKYLIGHT r3c6=H≠T. Unless column is different.
+//   If LANTERN at c8: L(r0c8)A(r1c8)N(r2c8)T(r3c8)E(r4c8)R(r5c8)N(r6c8)
+//   SKYLIGHT r3c8=T=LANTERN[3]=T ✓ !!!
+//   
+// YES! LANTERN intersects SKYLIGHT at the 'T'!
+// SKYLIGHT: S(c1)K(c2)Y(c3)L(c4)I(c5)G(c6)H(c7)T(c8)
+// LANTERN col8: L(r0)A(r1)N(r2)T(r3)E(r4)R(r5)N(r6)
+// r3c8: SKYLIGHT=T, LANTERN=T ✓ PERFECT!
+//
+// And across6 RED: from image it's at r5 near col6-8 area.
+// LANTERN r5c8=R. If RED starts at r5c6: R(c6)E(c7)D(c8)... but r5c8=R from LANTERN≠D. 
+// If RED ends at c8: r5c6=R,r5c7=E,r5c8=D — but LANTERN r5c8=R≠D.
+// RED starts at c8? That's only 1 cell (D at c8+2=c10, out of bounds for 10 cols).
+// RED at r5c6..8: RED[2]=D at c8, LANTERN[5]=R at c8 → D≠R. Conflict.
+// 
+// What if RED shares 'R' with LANTERN? LANTERN's R is at r5.
+// RED: R(r5c8)E(r5c9)D(r5c10) — out of bounds.
+// RED starting at c6: RED ends at c8. r5c8=D but LANTERN r5c8=R. Conflict.
+// RED starting at c7: r5c7=R,r5c8=E,r5c9=D. LANTERN r5c8=R≠E. Conflict.
+// RED with R at LANTERN's R position: r5c8=R(start), so r5c8=R,r5c9=E,r5c10=D. 10=out of bounds for 10 cols (0-9). Unless c10 is valid with COLS=11.
+//
+// You know what, the image probably has RED at r5, c6..8 and LANTERN at c9 (not c8).
+// Let me try LANTERN at c9: L(r0c9)A(r1c9)N(r2c9)T(r3c9)E(r4c9)R(r5c9)N(r6c9)
+// SKYLIGHT r3c9=? SKYLIGHT ends at c8 (T). c9 is outside SKYLIGHT. No intersection from SKYLIGHT.
+// BUT maybe SKYLIGHT is one longer somehow? No, SKYLIGHT = 8 letters.
+// OR SKYLIGHT starts at col0: S(c0)K(c1)Y(c2)L(c3)I(c4)G(c5)H(c6)T(c7)
+// Then LANTERN at c8: T at r3c8, but SKYLIGHT ends at c7. Still no T at c8.
+// LANTERN at c7: T(r3c7)=LANTERN[3]=T, SKYLIGHT[c7]=T ✓ 
+// SKYLIGHT starts at c0: T at c7. LANTERN at c7: L(r0)A(r1)N(r2)T(r3)E(r4)R(r5)N(r6)
+//  r3c7: SKYLIGHT=T, LANTERN=T ✓ 
+// 
+// Now RED at r5: LANTERN r5c7=R. 
+// RED: if it starts at r5c5: R(c5)E(c6)D(c7)... r5c7=D but LANTERN r5c7=R. Conflict.
+// RED starting at r5c7: R(c7)E(c8)D(c9)... r5c7: LANTERN=R=RED[0] ✓! RED: R(c7)E(c8)D(c9)
+// YES! RED shares 'R' with LANTERN at r5c7! PERFECT!
+//
+// FINAL DEFINITIVE ABSOLUTE LAYOUT:
+// SKYLIGHT starts at c0: S(r3c0)K(r3c1)Y(r3c2)L(r3c3)I(r3c4)G(r3c5)H(r3c6)T(r3c7)
+// WISH starts at c0: W(r1c0)I(r1c1)S(r1c2)H(r1c3)
+// RED: R(r5c7)E(r5c8)D(r5c9)
+// LANTERN: L(r0c7)A(r1c7)N(r2c7)T(r3c7)E(r4c7)R(r5c7)N(r6c7) [shares T with SKYLIGHT at r3c7, R with RED at r5c7]
+// down3 (clue: open canvas = SKY): S(r?)K(r?)Y(r3c?)... SKY going down. 
+//   If at col2: S(r1c2)K(r2c2)Y(r3c2). WISH r1c2=S ✓. SKYLIGHT r3c2=Y ✓. SKY: S,K,Y ✓✓✓ 
+// down4 SPARK at col1 (shares S with SKYLIGHT): S(r3c1)P(r4c1)A(r5c1)R(r6c1)K(r7c1)
+//   SKYLIGHT r3c1=K ≠ S(SPARK[0]). Conflict! SKYLIGHT[c1]=K not S.
+//   SKYLIGHT: S(c0)K(c1)Y(c2)L(c3)I(c4)G(c5)H(c6)T(c7)
+//   down4 shares [4] number with across4 SKYLIGHT. So [4] is at r3c0=S.
+//   down4 starts at r3c0: S(r3c0)P(r4c0)A(r5c0)R(r6c0)K(r7c0). SKYLIGHT[c0]=S ✓.
+//   BUT WISH is at r1c0..3: W(c0)I(c1)S(c2)H(c3). WISH r1c0=W. 
+//   down4 at c0 passing through r1c0=W (from WISH). But SPARK[? at r1] — 
+//   SPARK goes r3..7 so it's below row 3, doesn't conflict with WISH at r1. ✓
+//   Also WISH[c0]=W, and col0 at r1=W: is that part of any down word? Not if down4 only goes r3..7. ✓
+// down5 LIGHT at col3 or col4:
+//   Clue [5] number is at SKYLIGHT's 'L' position.
+//   SKYLIGHT: S(c0)K(c1)Y(c2)L(c3)I(c4)G(c5)H(c6)T(c7), L is at c3.
+//   down5 starts at r3c3: L(r3c3)I(r4c3)G(r5c3)H(r6c3)T(r7c3). SKYLIGHT r3c3=L ✓.
+//
+// WISH and SKY:
+//   WISH: W(r1c0)I(r1c1)S(r1c2)H(r1c3). [2] is at r1c0.
+//   down3 SKY at c2: S(r1c2)K(r2c2)Y(r3c2). WISH[c2]=S ✓. SKYLIGHT[c2]=Y ✓.
+//   [3] number is at start of down3: r1c2. But [2] WISH starts at r1c0. [3] is the 3rd different clue-start cell; it's placed at r1c2 because across2 WISH has its start [2] at c0, and down3 starts at c2 in the same row.
+//
+// EVERYTHING CHECKS OUT! Final answer:
+//
+// Cells layout (row, col, letter, clue_num):
+// r0c7: L (down1[1])
+// r1c0: W (across2[2])
+// r1c1: I 
+// r1c2: S (down3[3])
+// r1c3: H
+// r1c7: A
+// r2c2: K
+// r2c7: N
+// r3c0: S (across4[4], down4)  -- [4] marks both
+// r3c1: K
+// r3c2: Y
+// r3c3: L (down5[5])
+// r3c4: I
+// r3c5: G
+// r3c6: H
+// r3c7: T (intersection SKYLIGHT+LANTERN)
+// r4c0: P
+// r4c3: I
+// r4c7: E
+// r5c0: A
+// r5c3: G
+// r5c7: R (across6[6], intersection LANTERN+RED)
+// r5c8: E
+// r5c9: D
+// r6c0: R
+// r6c3: H
+// r6c7: N
+// r7c0: K
+// r7c3: T
+
+const cellData = {};
+
+function addWord(word, row, col, dir) {
+  for (let i = 0; i < word.length; i++) {
+    const r = dir === 'across' ? row : row + i;
+    const c = dir === 'across' ? col + i : col;
+    const key = `${r},${c}`;
+    if (!cellData[key]) cellData[key] = { answer: word[i], nums: [], acrossId: null, downId: null };
+    else if (cellData[key].answer !== word[i]) {
+      console.warn(`Conflict at ${key}: existing=${cellData[key].answer} new=${word[i]} from ${word}`);
+    }
+    if (dir === 'across') cellData[key].acrossId = word;
+    else cellData[key].downId = word;
+  }
+}
+
+// Place numbers at word starts
+const wordDefs = [
+  { id:'across1', answer:'LOVE',    row:0, col:7, dir:'across', num:1 },
+  { id:'down1',   answer:'LANTERN', row:0, col:7, dir:'down',   num:1 },
+  { id:'across2', answer:'WISH',    row:1, col:0, dir:'across', num:2 },
+  { id:'down3',   answer:'SKY',     row:1, col:2, dir:'down',   num:3 },
+  { id:'across4', answer:'SKYLIGHT',row:3, col:0, dir:'across', num:4 },
+  { id:'down4',   answer:'SPARK',   row:3, col:0, dir:'down',   num:4 },
+  { id:'down5',   answer:'LIGHT',   row:3, col:3, dir:'down',   num:5 },
+  { id:'across6', answer:'RED',     row:5, col:7, dir:'across', num:6 },
+];
+
+wordDefs.forEach(w => addWord(w.answer, w.row, w.col, w.dir));
+
+// Assign clue numbers to cells
+wordDefs.forEach(w => {
+  const key = `${w.row},${w.col}`;
+  if (cellData[key] && !cellData[key].nums.includes(w.num)) {
+    cellData[key].nums.push(w.num);
+  }
+});
+
+// Build grid DOM
+const GRID_ROWS = 8, GRID_COLS = 11;
+const gridEl = document.getElementById('grid');
+gridEl.style.gridTemplateColumns = `repeat(${GRID_COLS}, var(--cell-size))`;
+gridEl.style.gridTemplateRows = `repeat(${GRID_ROWS}, var(--cell-size))`;
+
+const inputs = {}; // key -> input element
+
+for (let r = 0; r < GRID_ROWS; r++) {
+  for (let c = 0; c < GRID_COLS; c++) {
+    const key = `${r},${c}`;
+    const data = cellData[key];
+    if (!data) {
+      const empty = document.createElement('div');
+      empty.className = 'cell-empty';
+      gridEl.appendChild(empty);
+    } else {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.key = key;
+
+      if (data.nums.length > 0) {
+        const num = document.createElement('span');
+        num.className = 'cell-num';
+        num.textContent = data.nums.join('');
+        cell.appendChild(num);
+      }
+
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 1;
+      inp.autocomplete = 'off';
+      inp.dataset.key = key;
+      cell.appendChild(inp);
+      gridEl.appendChild(cell);
+      inputs[key] = inp;
+
+      inp.addEventListener('input', (e) => {
+        const val = e.target.value.replace(/[^a-zA-Z]/g,'').toUpperCase().slice(-1);
+        inp.value = val;
+        if (val) advanceCursor(r, c);
+      });
+
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !inp.value) retreatCursor(r, c);
+        if (e.key === 'ArrowRight') { e.preventDefault(); focusCell(r, c+1); }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); focusCell(r, c-1); }
+        if (e.key === 'ArrowDown')  { e.preventDefault(); focusCell(r+1, c); }
+        if (e.key === 'ArrowUp')    { e.preventDefault(); focusCell(r-1, c); }
+      });
+    }
+  }
+}
+
+function focusCell(r, c) {
+  const key = `${r},${c}`;
+  if (inputs[key]) inputs[key].focus();
+}
+function advanceCursor(r, c) {
+  if (inputs[`${r},${c+1}`]) focusCell(r, c+1);
+  else if (inputs[`${r+1},${c}`]) focusCell(r+1, c);
+}
+function retreatCursor(r, c) {
+  if (inputs[`${r},${c-1}`]) focusCell(r, c-1);
+}
+
+// Clue highlighting
+document.querySelectorAll('.clue-item').forEach(clue => {
+  clue.addEventListener('click', () => {
+    document.querySelectorAll('.clue-item').forEach(c => c.classList.remove('active'));
+    clue.classList.add('active');
+    const dir = clue.dataset.dir;
+    const num = parseInt(clue.dataset.num);
+    const word = wordDefs.find(w => w.num === num && w.dir === dir);
+    if (word) {
+      for (let i = 0; i < word.answer.length; i++) {
+        const r = dir === 'across' ? word.row : word.row + i;
+        const c = dir === 'across' ? word.col + i : word.col;
+        const cell = gridEl.querySelector(`[data-key="${r},${c}"]`);
+        if (cell) cell.classList.add('highlighted');
+        setTimeout(() => { if(cell) cell.classList.remove('highlighted'); }, 2000);
+      }
+      const startInp = inputs[`${word.row},${word.col}`];
+      if (startInp) startInp.focus();
+    }
+  });
+});
+
+// Submit
+let totalCells = Object.keys(cellData).length;
+let correctCount = 0;
+
+document.getElementById('submitBtn').addEventListener('click', () => {
+  correctCount = 0;
+  let filled = 0;
+  Object.entries(cellData).forEach(([key, data]) => {
+    const inp = inputs[key];
+    if (!inp) return;
+    const val = (inp.value || '').toUpperCase();
+    const cell = inp.parentElement;
+    cell.classList.remove('correct','incorrect');
+    if (val) {
+      filled++;
+      if (val === data.answer) {
+        cell.classList.add('correct');
+        correctCount++;
+      } else {
+        cell.classList.add('incorrect');
+      }
+    }
+  });
+  if (filled === 0) {
+    alert('Please fill in some answers first! ✨');
+    return;
+  }
+  document.getElementById('instaModal').classList.add('open');
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  Object.values(inputs).forEach(inp => {
+    inp.value = '';
+    inp.parentElement.classList.remove('correct','incorrect');
+  });
+});
+
+// Instagram modal
+document.getElementById('skipBtn').addEventListener('click', () => {
+  document.getElementById('instaModal').classList.remove('open');
+  showSuccess('');
+});
+
+document.getElementById('confirmBtn').addEventListener('click', () => {
+  const handle = document.getElementById('instaInput').value.trim();
+  document.getElementById('instaModal').classList.remove('open');
+  showSuccess(handle);
+});
+
+document.getElementById('instaInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('confirmBtn').click();
+});
+
+function showSuccess(handle) {
+  const total = Object.keys(cellData).length;
+  document.getElementById('scoreDisplay').textContent = `${correctCount}/${total}`;
+  const pct = correctCount / total;
+  let msg = pct === 1 
+    ? 'Every answer perfect — your lantern shines brightest of all!' 
+    : pct >= 0.7 
+    ? 'So close! Your lantern still glows beautifully.' 
+    : 'Keep practicing — every lantern finds its light.';
+  document.getElementById('successMsg').textContent = msg;
+  document.getElementById('handleConfirm').textContent = handle ? `@${handle} — we'll look for your light ✨` : '';
+  document.getElementById('successModal').classList.add('open');
+  if (correctCount > 0) launchConfetti();
+}
+
+document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+  document.getElementById('successModal').classList.remove('open');
+});
+
+// Confetti
+function launchConfetti() {
+  const colors = ['#f0b84b','#e8556a','#a78bfa','#5ddb8f','#60a5fa','#f472b6'];
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left: ${Math.random()*100}vw;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --cd: ${1.5+Math.random()*2}s;
+      --cdelay: ${Math.random()*1.5}s;
+      --cx: ${(Math.random()-0.5)*200}px;
+      border-radius: ${Math.random()>0.5 ? '50%' : '2px'};
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 4000);
+  }
+}
+
+/* ─── Stars ─────────────────────────────────────────────────────────────── */
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 120; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2.5 + 0.5;
+  s.style.cssText = `
+    width: ${size}px; height: ${size}px;
+    left: ${Math.random()*100}%;
+    top:  ${Math.random()*100}%;
+    --d: ${2+Math.random()*4}s;
+    --op: ${0.4+Math.random()*0.6};
+    animation-delay: ${Math.random()*5}s;
+  `;
+  starsEl.appendChild(s);
+}
+
+/* ─── Floating lanterns ──────────────────────────────────────────────────── */
+const lanternColors = [
+  { lc: 'rgba(240,150,30,0.7)', lcBright: 'rgba(255,210,80,0.9)' },
+  { lc: 'rgba(220,60,60,0.65)', lcBright: 'rgba(255,120,90,0.85)' },
+  { lc: 'rgba(240,200,40,0.7)', lcBright: 'rgba(255,230,100,0.9)' },
+  { lc: 'rgba(180,80,220,0.55)', lcBright: 'rgba(220,140,255,0.75)' },
+  { lc: 'rgba(60,180,200,0.55)', lcBright: 'rgba(100,220,240,0.75)' },
+];
+const lanternsEl = document.getElementById('lanterns');
+
+function spawnLantern() {
+  const c = lanternColors[Math.floor(Math.random() * lanternColors.length)];
+  const size = 24 + Math.random() * 28;
+  const el = document.createElement('div');
+  el.className = 'lantern';
+  el.style.cssText = `
+    left: ${5 + Math.random()*90}%;
+    --dur: ${14+Math.random()*12}s;
+    --delay: 0s;
+    --sway: ${(Math.random()-0.5)*80}px;
+  `;
+  const body = document.createElement('div');
+  body.className = 'lantern-body';
+  body.style.cssText = `
+    --w: ${size}px;
+    --lc: ${c.lc};
+    --lc-bright: ${c.lcBright};
+  `;
+  el.appendChild(body);
+  lanternsEl.appendChild(el);
+  setTimeout(() => el.remove(), 28000);
+}
+
+// Initial burst + ongoing
+for (let i = 0; i < 8; i++) setTimeout(spawnLantern, i * 1200);
+setInterval(spawnLantern, 3500);
+</script>
+</body>
+</html>
