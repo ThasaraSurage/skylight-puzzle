@@ -723,15 +723,10 @@
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
       </svg>
-      Visit @yara_srilanka
+      Follow YARA Sri Lanka
     </a>
-    <div class="input-wrap">
-      <span class="at-symbol">@</span>
-      <input class="insta-input" id="instaInput" type="text" placeholder="your.username" autocomplete="off" />
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" id="skipBtn">Maybe later</button>
-      <button class="btn btn-primary" id="confirmBtn">Send it up ✦</button>
+    <div style="margin-top: 24px;">
+      <button class="btn btn-primary" id="confirmBtn">Continue ✦</button>
     </div>
   </div>
 </div>
@@ -744,7 +739,7 @@
     <div class="score-display" id="scoreDisplay">—</div>
     <div class="score-label">answers correct</div>
     <div class="modal-sub" id="successMsg">Your light joins a thousand others in the sky.</div>
-    <div class="handle-confirm" id="handleConfirm"></div>
+    <div class="handle-confirm" style="margin-top: 24px; font-size: 1.05rem; color: var(--gold);">Show your score to the game masters ✨</div>
     <div style="margin-top: 24px;">
       <button class="btn btn-primary" id="closeSuccessBtn">Close ✦</button>
     </div>
@@ -1294,32 +1289,17 @@ document.getElementById('clearBtn').addEventListener('click', () => {
 });
 
 // Instagram modal
-document.getElementById('skipBtn').addEventListener('click', () => {
-  document.getElementById('instaModal').classList.remove('open');
-  showSuccess('');
-});
-
 document.getElementById('confirmBtn').addEventListener('click', () => {
-  const handle = document.getElementById('instaInput').value.trim();
   document.getElementById('instaModal').classList.remove('open');
-  
-  // Submit to server
-  if (handle) {
-    submitToServer(handle, correctCount, Object.keys(cellData).length);
-  }
-  
-  showSuccess(handle);
+  showSuccess();
 });
 
 function submitToServer(username, score, total) {
-  // Prepare submission data
+  // Prepare simple submission data
   const submissionData = {
     instagram_username: username,
     score: score,
-    total_questions: total,
-    percentage: Math.round((score / total) * 100),
-    timestamp: new Date().toISOString(),
-    answers: getAnswers()
+    total_questions: total
   };
 
   // Determine the API URL based on current location
@@ -1343,15 +1323,10 @@ function submitToServer(username, score, total) {
   })
   .then(data => {
     console.log('✅ Submission successful:', data);
-    // Optional: Show a message to user
-    if (data.rank) {
-      console.log(`🏆 Your rank: ${data.rank}`);
-    }
   })
   .catch(error => {
     console.error('❌ Submission error:', error);
     console.log('⚠️ Make sure the server is running on http://localhost:3000');
-    // Still show success to user even if server submission fails
   });
 }
 
@@ -1370,11 +1345,7 @@ function getAnswers() {
   return answers;
 }
 
-document.getElementById('instaInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('confirmBtn').click();
-});
-
-function showSuccess(handle) {
+function showSuccess() {
   const total = Object.keys(cellData).length;
   document.getElementById('scoreDisplay').textContent = `${correctCount}/${total}`;
   const pct = correctCount / total;
@@ -1384,7 +1355,6 @@ function showSuccess(handle) {
     ? 'So close! Your lantern still glows beautifully.' 
     : 'Keep practicing — every lantern finds its light.';
   document.getElementById('successMsg').textContent = msg;
-  document.getElementById('handleConfirm').textContent = handle ? `@${handle} — we'll look for your light ✨` : '';
   document.getElementById('successModal').classList.add('open');
   if (correctCount > 0) launchConfetti();
 }
